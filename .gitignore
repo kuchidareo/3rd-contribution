@@ -1,0 +1,4 @@
+venv/
+
+# Preserved metadata from the formerly nested NCM repository
+/_local_git_backups/

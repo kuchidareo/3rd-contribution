@@ -1,0 +1,67 @@
+# Appendix B, C.1/C.2, D.1; architecture comes from the unmodified release config.
+official_config: config/eval/tinystories.yaml
+seed: 42
+device: cuda
+precision: bf16
+paths:
+  artifacts: artifacts/tinystories
+  data: data/tinystories-prepared
+  codes: data/tinystories-codes
+  tokenizer_checkpoint: artifacts/tinystories/tokenizer.pt
+ar:
+  n_layer: 12
+  n_head: 12
+  n_embd: 768
+  bias: true
+  dropout: 0.1
+  use_qk_norm: true
+  rope_base: 100000
+  tie_embeddings: true
+training:
+  generator:
+    steps: 50000
+    global_batch_size: 2048
+    micro_batch_size: 4
+    lr: 0.0003
+    min_lr: 0.00003
+    warmup_steps: 500
+    weight_decay: 0.1
+  tokenizer:
+    steps: 30000
+    global_batch_size: 4096
+    micro_batch_size: 32
+    lr: 0.0005
+    min_lr: 0.00005
+    warmup_steps: 1000
+    weight_decay: 0.01
+  betas: [0.9, 0.95]
+  grad_clip: 1.0
+  validation_every: 100
+  validation_rows: 256
+  checkpoint_every: 100
+  log_every: 10
+  early_stopping:
+    enabled: true
+    patience: 5
+    min_delta: 0.001
+    min_steps: 500
+  compile: true
+  # Added recipe: paper does not publish exact per-level endpoints or LR curve.
+  ncm_corruption_start: 0.9
+  ncm_corruption_end: 0.1
+  ncm_loss_alpha: 0.0
+sampling:
+  temperature: 1.0
+  top_k: 0
+  top_p: 1.0
+  # NCM follows release eager path. AR uses causal KV cache by default.
+  ar_kv_cache: true
+evaluation:
+  seeds: [42, 0, 1, 2, 3]
+  samples_per_seed: 256
+  batch_size: 16
+  warmup_batches: 2
+  benchmark_repeats: 5
+  ref_model: gpt2-large
+  scoring_batch_size: 8
+  scoring_max_length: 1024
