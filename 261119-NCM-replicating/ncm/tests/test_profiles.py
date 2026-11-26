@@ -19,6 +19,20 @@ def inputs():
 
 
 class ProfileTests(unittest.TestCase):
+    def test_small_profile_matches_generators_and_preserves_tokenizer(self):
+        cfg, official = inputs()
+        result = configure_profile(cfg, official, 'small', bf16_supported=False,
+                                   precision='fp16', micro_batch=2)
+        for key, value in dict(n_layer=6, n_embd=384, n_head=6).items():
+            self.assertEqual(result['ar'][key], value)
+            self.assertEqual(result['upstream_overrides']['model'][key], value)
+        self.assertNotIn('tokenizer', result['upstream_overrides'])
+        self.assertEqual(result['training']['tokenizer'], cfg['training']['tokenizer'])
+        self.assertEqual(result['training']['generator']['warmup_steps'], 100)
+        self.assertEqual(result['training']['generator']['global_batch_size'], 64)
+        self.assertEqual(result['experiment']['gradient_accumulation_steps'], 32)
+        self.assertTrue(result['ncm_selective_fp32'])
+
     def test_paper_published_settings_and_budget(self):
         cfg, official = inputs()
         original = deepcopy(cfg)
@@ -124,7 +138,8 @@ class NotebookWiringTests(unittest.TestCase):
     def test_configuration_calls_tested_profile_helper(self):
         source = next(c['source'] for c in self.cells() if c['cell_type'] == 'code' and 'PROFILE =' in c['source'])
         self.assertIn('OmegaConf.create(configure_profile(', source)
-        self.assertIn("RUN_FOLDER = 'paper-fp16'", source)
+        self.assertIn("PROFILE = 'small'", source)
+        self.assertIn("STOP_AT_UPDATE = 100", source)
         self.assertIn('precision=PRECISION', source)
         self.assertIn('torch.cuda.get_device_capability()[0] >= 8', source)
         self.assertNotIn("cfg.precision = 'bf16' if", source)
@@ -151,7 +166,11 @@ class NotebookWiringTests(unittest.TestCase):
         from pathlib import Path
         import sys
         from types import SimpleNamespace
-        cell = next(c for c in self.cells() if c['cell_type'] == 'code' and 'RESULT_TAG =' in c['source'])
+        import json
+        archived = (Path(__file__).resolve().parents[1] /
+                    'notebooks/big-model-backup/02_train_tinystories_kaggle.ipynb')
+        cells = json.loads(archived.read_text())['cells']
+        cell = next(c for c in cells if c['cell_type'] == 'code' and 'RESULT_TAG =' in c['source'])
         cfg, official = inputs()
         config = configure_profile(cfg, official, 'paper', bf16_supported=True)
         def load(path, **kwargs):

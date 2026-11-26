@@ -2,6 +2,14 @@
 from copy import deepcopy
 
 
+SMALL_GENERATOR = {
+    "steps": 5000,
+    "global_batch_size": 64,
+    "warmup_steps": 100,
+}
+SMALL_ARCHITECTURE = {"n_layer": 6, "n_embd": 384, "n_head": 6}
+
+
 PAPER_GENERATOR = {
     'steps': 50000,
     'global_batch_size': 2048,
@@ -30,8 +38,8 @@ TRAINING_ASSUMPTIONS = {
 
 def configure_profile(config, official, profile, *, bf16_supported, micro_batch=2,
                       pilot_steps=100, pilot_global_batch=32, model_overrides=None, precision=None):
-    if profile not in {'pilot', 'paper'}:
-        raise ValueError("PROFILE must be 'pilot' or 'paper'")
+    if profile not in {'pilot', 'paper', 'small'}:
+        raise ValueError("PROFILE must be 'pilot', 'small', or 'paper'")
     if precision not in {None, 'bf16', 'fp16', 'fp32'}:
         raise ValueError('PRECISION must be bf16, fp16, or fp32')
     if micro_batch < 1:
@@ -81,12 +89,21 @@ def configure_profile(config, official, profile, *, bf16_supported, micro_batch=
                                   'benchmark_repeats': 3})
         if overrides:
             cfg.setdefault('upstream_overrides', {})['model'] = deepcopy(overrides)
+    if profile == 'small':
+        recipe.update(SMALL_GENERATOR)
+        cfg['ar'].update(SMALL_ARCHITECTURE)
+        model = cfg.setdefault('upstream_overrides', {}).setdefault('model', {})
+        model.update(SMALL_ARCHITECTURE)
     if recipe['global_batch_size'] % micro_batch:
         raise ValueError('MICRO_BATCH must divide the selected global batch size')
     cfg['ncm_selective_fp32'] = cfg['precision'] == 'fp16'
     cfg['experiment'] = {
         'profile': profile,
-        'status': 'published settings with explicitly reconstructed training details' if profile == 'paper' else 'pilot only',
+        'status': {
+            'paper': 'published settings with explicitly reconstructed training details',
+            'small': 'small-model Kaggle baseline',
+            'pilot': 'pilot only',
+        }[profile],
         'full_paper_equivalence_verified': False,
         'training_assumptions': deepcopy(TRAINING_ASSUMPTIONS),
         'gradient_accumulation_steps': recipe['global_batch_size'] // micro_batch,

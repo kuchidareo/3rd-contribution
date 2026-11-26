@@ -121,9 +121,13 @@ Kaggle notebooks:
 
 1. [Prepare reusable TinyStories data](notebooks/01_prepare_tinystories_kaggle.ipynb)
    saves `/kaggle/working/ncm-tinystories/` for creating a private Kaggle Dataset.
-2. [Train AR and NCM](notebooks/02_train_tinystories_kaggle.ipynb)
-   attaches that Dataset, trains both models, and runs the comparison without
-   downloading TinyStories again. Defaults to a 100-update pilot.
+2. [Train small AR and NCM generators](notebooks/02_train_tinystories_kaggle.ipynb)
+   reuses the prepared Dataset and saves checkpoints. The first session defaults
+   to 100 updates per model with global batch 64.
+3. [Evaluate saved checkpoints](notebooks/03_evaluate_tinystories_kaggle.ipynb)
+   reports quality and speed independently of the training session.
+
+The original notebooks are in [big-model-backup](notebooks/big-model-backup/README.md).
 
 This copy is tracked by the parent repository as ordinary files (see [UPSTREAM.md](UPSTREAM.md)).
 Set the notebook `REPO_URL` to that parent repository, then commit and push the

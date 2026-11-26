@@ -284,10 +284,15 @@ before downloading the data. This status is not a claim that training has been v
   Save the notebook version with outputs and manually create a **private** Kaggle
   Dataset from that folder. The notebook does not publish or configure privacy.
 - [`02_train_tinystories_kaggle.ipynb`](../notebooks/02_train_tinystories_kaggle.ipynb)
-  reads that Dataset directly from `/kaggle/input/`, launches both training CLIs,
-  supports checkpoints from previous notebook outputs, and generates comparison
-  results. Edit `DATASET_ROOT` to match your attachment. Default training is a
-  100-update, global-batch-32 pilot; select `PROFILE='paper'` for the full budget.
+  reuses the existing attachment and trains 6-layer generators with width 384 and
+  6 attention heads. Edit `DATASET_ROOT` to match your attachment. The small profile
+  uses global batch 64, 100 warmup updates, and a 5,000-update learning-rate horizon.
+  The first session stops at update 100 and saves checkpoints for both models.
+- [Notebook 3](../notebooks/03_evaluate_tinystories_kaggle.ipynb) evaluates saved
+  checkpoints. Use the two `latest.pt` files at the same update for equal exposure.
+
+The paper workflow described below remains available in
+[the archived notebooks](../notebooks/big-model-backup/README.md).
 
 The saved data includes `prepared/`, `codes/` (if enabled),
 `artifacts/tinystories/`, download revisions, and environment records. NCM generator
